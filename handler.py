@@ -23,6 +23,43 @@ sys.path.insert(0, "/workspace/sam-3d-objects")
 sys.path.insert(0, "/workspace/sam-3d-objects/notebook")
 
 # ---------------------------------------------------------------------------
+# Download checkpoints on first cold start (avoids baking ~10 GB into image)
+# ---------------------------------------------------------------------------
+CHECKPOINT_DIR = "/workspace/checkpoints/hf"
+
+
+def ensure_checkpoints():
+    """Download SAM 3D Objects checkpoints from HuggingFace if not present."""
+    marker = os.path.join(CHECKPOINT_DIR, "pipeline.yaml")
+    if os.path.exists(marker):
+        print("[handler] Checkpoints already present.", flush=True)
+        return
+
+    print("[handler] Downloading checkpoints from HuggingFace …", flush=True)
+    hf_token = os.environ.get("HF_TOKEN", "")
+    if not hf_token:
+        raise RuntimeError("HF_TOKEN env var is required to download checkpoints")
+
+    from huggingface_hub import snapshot_download
+
+    dl_dir = "/workspace/checkpoints/hf-download"
+    snapshot_download(
+        repo_id="facebook/sam-3d-objects",
+        repo_type="model",
+        local_dir=dl_dir,
+        token=hf_token,
+    )
+    # Move checkpoints subfolder to expected location
+    import shutil
+    src = os.path.join(dl_dir, "checkpoints")
+    os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+    for item in os.listdir(src):
+        shutil.move(os.path.join(src, item), os.path.join(CHECKPOINT_DIR, item))
+    shutil.rmtree(dl_dir, ignore_errors=True)
+    print("[handler] Checkpoints downloaded!", flush=True)
+
+
+# ---------------------------------------------------------------------------
 # Lazy model loading (loaded once, reused across requests)
 # ---------------------------------------------------------------------------
 _inference = None
@@ -31,9 +68,10 @@ _inference = None
 def get_model():
     global _inference
     if _inference is None:
+        ensure_checkpoints()
         from inference import Inference
 
-        config_path = "/workspace/checkpoints/hf/pipeline.yaml"
+        config_path = os.path.join(CHECKPOINT_DIR, "pipeline.yaml")
         print("[handler] Loading SAM 3D Objects model …", flush=True)
         _inference = Inference(config_path, compile=False)
         print("[handler] Model loaded!", flush=True)

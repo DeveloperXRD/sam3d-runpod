@@ -36,7 +36,5 @@ jobs:
           context: .
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/sam3d-runpod:latest
-          build-args: |
-            HF_TOKEN=${{ secrets.HF_TOKEN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

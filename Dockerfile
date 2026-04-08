@@ -47,17 +47,8 @@ RUN bash ./patching/hydra || true
 # ── Extra deps for handler (headless opencv to avoid libgl1) ──
 RUN pip install --no-cache-dir runpod open3d trimesh opencv-python-headless
 
-# ── Download SAM 3D Objects checkpoints from HuggingFace ──
-ARG HF_TOKEN
-RUN pip install --no-cache-dir 'huggingface-hub[cli]<1.0' && \
-    huggingface-cli login --token ${HF_TOKEN} && \
-    huggingface-cli download \
-        --repo-type model \
-        --local-dir /workspace/checkpoints/hf-download \
-        --max-workers 1 \
-        facebook/sam-3d-objects && \
-    mv /workspace/checkpoints/hf-download/checkpoints /workspace/checkpoints/hf && \
-    rm -rf /workspace/checkpoints/hf-download
+# ── HuggingFace hub (checkpoints are downloaded at runtime via handler.py) ──
+RUN pip install --no-cache-dir 'huggingface-hub<1.0'
 
 # ── Copy handler ──
 WORKDIR /workspace
