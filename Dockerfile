@@ -36,7 +36,9 @@ RUN pip install --no-cache-dir -e .
 RUN pip install --no-cache-dir -e '.[p3d]'
 
 # ── Install inference deps (Kaolin + gsplat) ──
+# TORCH_CUDA_ARCH_LIST needed because no GPU present during CI build
 ENV PIP_FIND_LINKS="https://nvidia-kaolin.s3.us-east-2.amazonaws.com/torch-2.5.1_cu121.html"
+ENV TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;9.0"
 RUN pip install --no-cache-dir -e '.[inference]'
 
 # ── Patch Hydra ──
