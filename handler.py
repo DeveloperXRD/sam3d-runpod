@@ -69,6 +69,7 @@ def get_model():
     global _inference
     if _inference is None:
         ensure_checkpoints()
+        os.environ.setdefault("CONDA_PREFIX", "/usr/local/cuda")
         from inference import Inference
 
         config_path = os.path.join(CHECKPOINT_DIR, "pipeline.yaml")
