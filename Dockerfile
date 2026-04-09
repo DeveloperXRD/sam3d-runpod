@@ -44,6 +44,9 @@ RUN pip install --no-cache-dir -e '.[inference]'
 # ── Patch Hydra ──
 RUN bash ./patching/hydra || true
 
+# ── Fix numpy binary compat (kaolin wheels need numpy 2.x) ──
+RUN pip install --no-cache-dir 'numpy>=2.0'
+
 # ── Extra deps for handler + inference.py imports ──
 RUN pip install --no-cache-dir runpod open3d trimesh opencv-python-headless \
     gradio seaborn matplotlib
