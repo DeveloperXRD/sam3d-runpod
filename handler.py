@@ -134,6 +134,18 @@ def get_model():
         config_path = os.path.join(CHECKPOINT_DIR, "pipeline.yaml")
         print("[handler] Loading SAM 3D Objects model …", flush=True)
         _inference = Inference(config_path, compile=False)
+
+        # Replace the mesh decoder with a no-op to avoid kaolin runtime dep.
+        # The handler only uses the Gaussian-splat output ("gs").
+        class _NoopDecoder(torch.nn.Module):
+            def forward(self, slat):
+                return None
+        try:
+            _inference._pipeline.models["slat_decoder_mesh"] = _NoopDecoder().to("cuda")
+            print("[handler] Replaced mesh decoder with no-op (kaolin not needed).", flush=True)
+        except Exception:
+            pass
+
         print("[handler] Model loaded!", flush=True)
     return _inference
 
