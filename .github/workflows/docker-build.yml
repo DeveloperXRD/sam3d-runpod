@@ -36,6 +36,6 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/developerxrd/sam3d-runpod:latest
+          tags: ghcr.io/${{ github.actor }}/sam3d-runpod:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
