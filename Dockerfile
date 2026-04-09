@@ -44,8 +44,9 @@ RUN pip install --no-cache-dir -e '.[inference]'
 # ── Patch Hydra ──
 RUN bash ./patching/hydra || true
 
-# ── Extra deps for handler (headless opencv to avoid libgl1) ──
-RUN pip install --no-cache-dir runpod open3d trimesh opencv-python-headless
+# ── Extra deps for handler + inference.py imports ──
+RUN pip install --no-cache-dir runpod open3d trimesh opencv-python-headless \
+    gradio seaborn matplotlib
 
 # ── HuggingFace hub (checkpoints are downloaded at runtime via handler.py) ──
 RUN pip install --no-cache-dir 'huggingface-hub<1.0'
