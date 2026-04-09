@@ -25,7 +25,14 @@ sys.path.insert(0, "/workspace/sam-3d-objects/notebook")
 # ---------------------------------------------------------------------------
 # Download checkpoints on first cold start (avoids baking ~10 GB into image)
 # ---------------------------------------------------------------------------
-CHECKPOINT_DIR = "/workspace/checkpoints/hf"
+# Use network volume if available (persists across cold starts), else container disk
+_VOLUME_PATH = os.environ.get("RUNPOD_VOLUME_PATH", "/runpod-volume")
+if os.path.isdir(_VOLUME_PATH):
+    CHECKPOINT_DIR = os.path.join(_VOLUME_PATH, "checkpoints/hf")
+    print(f"[handler] Using network volume: {CHECKPOINT_DIR}", flush=True)
+else:
+    CHECKPOINT_DIR = "/workspace/checkpoints/hf"
+    print(f"[handler] Using container disk: {CHECKPOINT_DIR}", flush=True)
 
 
 def ensure_checkpoints():
