@@ -232,7 +232,10 @@ def handler(event):
         model = get_model()
         print(f"[handler] Running inference (image {image.shape}, mask {mask.shape}) …", flush=True)
         output = model(image, mask, seed=seed)
-        gs = output["gs"]
+        print(f"[handler] Pipeline output keys: {list(output.keys())}", flush=True)
+        gs = output.get("gs") or output.get("gaussian")
+        if gs is None:
+            raise ValueError(f"No Gaussian splat in output. Keys: {list(output.keys())}")
 
         # --- export ------------------------------------------------------
         tmp_ply = "/tmp/output.ply"
