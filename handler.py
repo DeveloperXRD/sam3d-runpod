@@ -89,11 +89,46 @@ def ensure_checkpoints():
 _inference = None
 
 
+def _mock_kaolin():
+    """Inject stub kaolin modules so inference.py can import without loading
+    the real kaolin (which has a numpy ABI mismatch in this image)."""
+    import types
+
+    def _make_module(name, attrs=None):
+        m = types.ModuleType(name)
+        for k, v in (attrs or {}).items():
+            setattr(m, k, v)
+        sys.modules[name] = m
+        return m
+
+    class _Dummy:
+        def __init__(self, *a, **kw): pass
+        def __call__(self, *a, **kw): return self
+
+    # kaolin top-level
+    kaolin = _make_module("kaolin")
+    # kaolin.visualize
+    vis = _make_module("kaolin.visualize", {"IpyTurntableVisualizer": _Dummy})
+    kaolin.visualize = vis
+    # kaolin.render + kaolin.render.camera
+    render = _make_module("kaolin.render")
+    camera = _make_module("kaolin.render.camera", {
+        "Camera": _Dummy,
+        "CameraExtrinsics": _Dummy,
+        "PinholeIntrinsics": _Dummy,
+    })
+    render.camera = camera
+    kaolin.render = render
+
+    print("[handler] Injected kaolin stubs (skipping real kaolin).", flush=True)
+
+
 def get_model():
     global _inference
     if _inference is None:
         ensure_checkpoints()
         os.environ.setdefault("CONDA_PREFIX", "/usr/local/cuda")
+        _mock_kaolin()
         from inference import Inference
 
         config_path = os.path.join(CHECKPOINT_DIR, "pipeline.yaml")
