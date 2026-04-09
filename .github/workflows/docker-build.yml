@@ -31,11 +31,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set lowercase username
+        id: lowercase
+        run: echo "username=${GITHUB_ACTOR,,}" >> $GITHUB_OUTPUT
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.actor }}/sam3d-runpod:latest
+          tags: ghcr.io/${{ steps.lowercase.outputs.username }}/sam3d-runpod:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
