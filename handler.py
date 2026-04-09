@@ -3,9 +3,26 @@ RunPod Serverless Handler — SAM 3D Objects
 Accepts image + mask → returns GLB mesh (converted from Gaussian splat).
 """
 import os
+import subprocess
 
 os.environ["CUDA_HOME"] = "/usr/local/cuda"
 os.environ["LIDRA_SKIP_INIT"] = "true"
+
+# ── Fix numpy binary compat at runtime (kaolin needs numpy 2.x) ──
+def _ensure_numpy2():
+    try:
+        import numpy as _np
+        if int(_np.__version__.split(".")[0]) < 2:
+            print(f"[handler] numpy {_np.__version__} too old, upgrading…", flush=True)
+            subprocess.check_call(
+                [os.sys.executable, "-m", "pip", "install", "-q", "numpy>=2.0"],
+                stdout=subprocess.DEVNULL,
+            )
+            print("[handler] numpy upgraded!", flush=True)
+    except Exception as e:
+        print(f"[handler] numpy upgrade failed: {e}", flush=True)
+
+_ensure_numpy2()
 
 import sys
 import base64
