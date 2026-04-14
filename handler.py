@@ -90,37 +90,9 @@ _inference = None
 
 
 def _mock_kaolin():
-    """Inject stub kaolin modules so inference.py can import without loading
-    the real kaolin (which has a numpy ABI mismatch in this image)."""
-    import types
-
-    def _make_module(name, attrs=None):
-        m = types.ModuleType(name)
-        for k, v in (attrs or {}).items():
-            setattr(m, k, v)
-        sys.modules[name] = m
-        return m
-
-    class _Dummy:
-        def __init__(self, *a, **kw): pass
-        def __call__(self, *a, **kw): return self
-
-    # kaolin top-level
-    kaolin = _make_module("kaolin")
-    # kaolin.visualize
-    vis = _make_module("kaolin.visualize", {"IpyTurntableVisualizer": _Dummy})
-    kaolin.visualize = vis
-    # kaolin.render + kaolin.render.camera
-    render = _make_module("kaolin.render")
-    camera = _make_module("kaolin.render.camera", {
-        "Camera": _Dummy,
-        "CameraExtrinsics": _Dummy,
-        "PinholeIntrinsics": _Dummy,
-    })
-    render.camera = camera
-    kaolin.render = render
-
-    print("[handler] Injected kaolin stubs (skipping real kaolin).", flush=True)
+    """Kaolin mocking is now handled by boot.py's import hook.
+    This function is kept as a no-op for compatibility."""
+    print("[handler] Kaolin stubs handled by boot.py import hook.", flush=True)
 
 
 def get_model():
