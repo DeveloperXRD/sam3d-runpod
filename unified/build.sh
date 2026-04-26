@@ -21,8 +21,10 @@ pip install --no-cache-dir --upgrade-strategy only-if-needed --ignore-installed 
 
 # Open3D separately with --no-deps to avoid blinker/flask conflicts; install only essential deps
 pip install --no-cache-dir --no-deps 'open3d>=0.18.0'
+# Open3D imports dash/flask at module load for its visualization submodule — must be installed
 pip install --no-cache-dir --upgrade-strategy only-if-needed --ignore-installed blinker \
-    'matplotlib>=3.7' 'pyyaml' 'tqdm' 'pyquaternion' 'scikit-learn' 'pandas' 'addict' 'configargparse' || echo "Some open3d deps failed (visualizer features may not work)"
+    'matplotlib>=3.7' 'pyyaml' 'tqdm' 'pyquaternion' 'scikit-learn' 'pandas' 'addict' 'configargparse' \
+    'dash>=2.6.0' 'flask>=3.0.0' 'werkzeug' 'plotly' || echo "Some open3d deps failed"
 
 # ── CadQuery (optional, for STEP export in primitive-fit) ──
 # Install with --no-deps to avoid pip pulling in heavy deps (vtk, matplotlib, etc)
