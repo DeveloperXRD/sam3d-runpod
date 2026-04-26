@@ -451,12 +451,30 @@ def export_ifc(walls, slabs, output_path):
                         [ifc.createIfcShapeRepresentation(body, "Body", "SweptSolid", [solid])])
 
             for oi, op in enumerate(wall.openings):
-                ifc_op = api.run("root.create_entity", ifc, ifc_class="IfcOpeningElement",
-                                  name=f"Opening L{si}-W{wi}-{oi}")
-                api.run("void.add_opening", ifc, opening_element=ifc_op, element=ifc_wall)
-                cls = "IfcDoor" if op.type == "door" else "IfcWindow"
-                el = api.run("root.create_entity", ifc, ifc_class=cls, name=f"{op.type.title()} L{si}-W{wi}-{oi}")
-                api.run("void.add_filling", ifc, opening=ifc_op, element=el)
+                # Opening creation via the high-level API differs between ifcopenshell versions.
+                # Try 0.7.x-style void.*, then fall back to 0.8.x-style feature.* / spatial.*
+                # If all fail, skip opening (still present in pascal_nodes output).
+                try:
+                    ifc_op = api.run("root.create_entity", ifc, ifc_class="IfcOpeningElement",
+                                      name=f"Opening L{si}-W{wi}-{oi}")
+                    try:
+                        api.run("void.add_opening", ifc, opening_element=ifc_op, element=ifc_wall)
+                    except (ModuleNotFoundError, Exception):
+                        try:
+                            api.run("feature.add_feature", ifc, feature=ifc_op, element=ifc_wall)
+                        except Exception:
+                            pass
+                    cls = "IfcDoor" if op.type == "door" else "IfcWindow"
+                    el = api.run("root.create_entity", ifc, ifc_class=cls, name=f"{op.type.title()} L{si}-W{wi}-{oi}")
+                    try:
+                        api.run("void.add_filling", ifc, opening=ifc_op, element=el)
+                    except (ModuleNotFoundError, Exception):
+                        try:
+                            api.run("feature.add_filling", ifc, opening=ifc_op, element=el)
+                        except Exception:
+                            pass
+                except Exception as e:
+                    print(f"[primitive-fit] Warning: skipped opening: {e}", flush=True)
 
     ifc.write(output_path)
 

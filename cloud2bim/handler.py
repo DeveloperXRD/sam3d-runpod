@@ -351,14 +351,30 @@ def build_ifc(storeys_data, output_path):
             ifc_wall.ObjectPlacement = local_placement
 
             for oi, opening in enumerate(wall.get("openings", [])):
-                ifc_opening = api.run("root.create_entity", ifc, ifc_class="IfcOpeningElement",
-                                       name=f"Opening L{si}-W{wi}-{oi}")
-                api.run("void.add_opening", ifc, opening_element=ifc_opening, element=ifc_wall)
-                if opening["type"] == "door":
-                    el = api.run("root.create_entity", ifc, ifc_class="IfcDoor", name=f"Door L{si}-W{wi}-{oi}")
-                else:
-                    el = api.run("root.create_entity", ifc, ifc_class="IfcWindow", name=f"Window L{si}-W{wi}-{oi}")
-                api.run("void.add_filling", ifc, opening=ifc_opening, element=el)
+                # ifcopenshell API for voids differs across versions — try all known variants
+                try:
+                    ifc_opening = api.run("root.create_entity", ifc, ifc_class="IfcOpeningElement",
+                                           name=f"Opening L{si}-W{wi}-{oi}")
+                    try:
+                        api.run("void.add_opening", ifc, opening_element=ifc_opening, element=ifc_wall)
+                    except (ModuleNotFoundError, Exception):
+                        try:
+                            api.run("feature.add_feature", ifc, feature=ifc_opening, element=ifc_wall)
+                        except Exception:
+                            pass
+                    if opening["type"] == "door":
+                        el = api.run("root.create_entity", ifc, ifc_class="IfcDoor", name=f"Door L{si}-W{wi}-{oi}")
+                    else:
+                        el = api.run("root.create_entity", ifc, ifc_class="IfcWindow", name=f"Window L{si}-W{wi}-{oi}")
+                    try:
+                        api.run("void.add_filling", ifc, opening=ifc_opening, element=el)
+                    except (ModuleNotFoundError, Exception):
+                        try:
+                            api.run("feature.add_filling", ifc, opening=ifc_opening, element=el)
+                        except Exception:
+                            pass
+                except Exception as e:
+                    print(f"[cloud2bim] Warning: skipped opening: {e}", flush=True)
 
     ifc.write(output_path)
     return output_path
