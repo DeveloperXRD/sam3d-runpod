@@ -35,7 +35,8 @@ echo "--- Installing CadQuery (optional, with --no-deps to preserve numpy<2) ---
 pip install --no-cache-dir --no-deps 'cadquery-ocp>=7.8.1,<7.9' || echo "cadquery-ocp install failed (optional)"
 pip install --no-cache-dir --no-deps 'cadquery>=2.4,<2.7' || echo "cadquery install failed (optional)"
 # Install only the minimal python-only deps cadquery needs; skip vtk/matplotlib that force numpy upgrade
-pip install --no-cache-dir --no-deps 'multimethod<2.0' 'nlopt' 'path' 'ezdxf' || echo "Some cadquery deps failed (STEP export will be disabled)"
+# nlopt<2.10 is required — nlopt 2.10 requires numpy 2.x
+pip install --no-cache-dir --no-deps 'multimethod<2.0' 'nlopt<2.10' 'path' 'ezdxf' || echo "Some cadquery deps failed (STEP export will be disabled)"
 
 # ── CRITICAL: Force numpy back to <2.0 after cadquery install ──
 # Some transitive deps may have pulled numpy 2.x which breaks open3d/trimesh.
