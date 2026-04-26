@@ -9,14 +9,20 @@ apt-get update -q && apt-get install -y -q --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Core Python deps (shared by both pipelines) ──
-pip install --no-cache-dir --upgrade-strategy only-if-needed \
+# --ignore-installed blinker: works around Ubuntu's apt-installed blinker 1.4 conflict
+# --no-deps for open3d to avoid pulling in ancient flask/dash that conflict with system pkgs
+pip install --no-cache-dir --upgrade-strategy only-if-needed --ignore-installed blinker \
     'numpy>=1.24,<2.0' \
-    'open3d>=0.18.0' \
     'ifcopenshell>=0.8.0' \
     'scipy>=1.11' \
     'trimesh>=4.0' \
     'laspy>=2.5' \
     'Pillow>=10.0'
+
+# Open3D separately with --no-deps to avoid blinker/flask conflicts; install only essential deps
+pip install --no-cache-dir --no-deps 'open3d>=0.18.0'
+pip install --no-cache-dir --upgrade-strategy only-if-needed --ignore-installed blinker \
+    'matplotlib>=3.7' 'pyyaml' 'tqdm' 'pyquaternion' 'scikit-learn' 'pandas' 'addict' 'configargparse' || echo "Some open3d deps failed (visualizer features may not work)"
 
 # ── CadQuery (optional, for STEP export in primitive-fit) ──
 # Install with --no-deps to avoid pip pulling in heavy deps (vtk, matplotlib, etc)
