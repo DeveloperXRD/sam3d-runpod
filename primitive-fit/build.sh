@@ -19,12 +19,14 @@ pip install --no-cache-dir --upgrade-strategy only-if-needed \
     'Pillow>=10.0'
 
 # Step 2: Install cadquery without dependencies first (avoids backtracking)
-pip install --no-cache-dir --no-deps cadquery-ocp
-pip install --no-cache-dir --no-deps cadquery
+# Use --no-deps to skip transitive dep resolution that breaks on newer pytorch images
+pip install --no-cache-dir --no-deps 'cadquery-ocp>=7.8.1,<7.9' || echo "cadquery-ocp install failed (optional)"
+pip install --no-cache-dir --no-deps 'cadquery>=2.4,<2.7' || echo "cadquery install failed (optional)"
 
-# Step 3: Install only the cadquery deps that aren't already there
+# Step 3: Install only the cadquery deps that aren't already there (skip if cadquery failed)
 pip install --no-cache-dir --upgrade-strategy only-if-needed \
-    ezdxf multimethod nlopt vtk path
+    'numpy>=1.24,<2.0' \
+    'ezdxf' 'multimethod<2.0' 'nlopt' 'path' || echo "Some cadquery deps failed (STEP export will be disabled)"
 
 echo "=== Build complete ==="
 echo "Now upload primitive_fit_handler.py to /workspace/handler.py"

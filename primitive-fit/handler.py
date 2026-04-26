@@ -435,8 +435,8 @@ def export_step(walls, slabs, output_path):
                          loc=cq.Location(cq.Vector(0, 0, slab.elevation)))
         assembly.save(output_path)
         return True
-    except ImportError:
-        print("[primitive-fit] CadQuery not available, skipping STEP", flush=True)
+    except (ImportError, Exception) as e:
+        print(f"[primitive-fit] CadQuery unavailable ({type(e).__name__}: {e}), skipping STEP", flush=True)
         return False
 
 
