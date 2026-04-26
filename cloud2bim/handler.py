@@ -259,8 +259,7 @@ def detect_openings_in_wall(wall, storey_height, floor_elevation):
     density = hist / hist.max()
     threshold = 0.15
     empty = density < threshold
-    from scipy import ndimage
-    labeled, num_features = ndimage.label(empty)
+    labeled, num_features = _label_connected_components(empty)
 
     for label_id in range(1, num_features + 1):
         region = np.where(labeled == label_id)
@@ -461,7 +460,6 @@ def generate_pascal_nodes(storeys_data):
 
 
 def compute_slab_polygon(wall_segments):
-    from scipy.spatial import ConvexHull
     if len(wall_segments) < 3:
         return None
     points = []
@@ -470,10 +468,58 @@ def compute_slab_polygon(wall_segments):
         points.append(w["end"])
     pts = np.array(points)
     try:
-        hull = ConvexHull(pts)
-        return pts[hull.vertices].tolist()
+        hull = _convex_hull_2d(pts)
+        return hull.tolist() if len(hull) >= 3 else None
     except Exception:
         return None
+
+
+# ── Pure-numpy helpers (replace scipy to avoid numpy ABI issues) ──
+
+def _label_connected_components(binary_mask):
+    """Pure-numpy 4-connectivity connected components (replaces scipy.ndimage.label)."""
+    mask = np.asarray(binary_mask, dtype=bool)
+    labeled = np.zeros(mask.shape, dtype=np.int32)
+    next_label = 1
+    H, W = mask.shape
+    for i in range(H):
+        for j in range(W):
+            if mask[i, j] and labeled[i, j] == 0:
+                stack = [(i, j)]
+                while stack:
+                    y, x = stack.pop()
+                    if y < 0 or y >= H or x < 0 or x >= W:
+                        continue
+                    if not mask[y, x] or labeled[y, x] != 0:
+                        continue
+                    labeled[y, x] = next_label
+                    stack.extend([(y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)])
+                next_label += 1
+    return labeled, next_label - 1
+
+
+def _convex_hull_2d(points):
+    """2D convex hull via Andrew's monotone chain (replaces scipy.spatial.ConvexHull)."""
+    pts = np.asarray(points, dtype=float)
+    pts = np.unique(pts, axis=0)
+    if len(pts) < 3:
+        return pts
+    pts = pts[np.lexsort((pts[:, 1], pts[:, 0]))]
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    lower = []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    upper = []
+    for p in pts[::-1]:
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    return np.array(lower[:-1] + upper[:-1])
 
 
 # ---------------------------------------------------------------------------

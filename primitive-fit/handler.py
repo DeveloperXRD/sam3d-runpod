@@ -245,9 +245,35 @@ def merge_walls(walls, angle_threshold=5.0, distance_threshold=0.3, gap_threshol
 # Opening detection
 # ---------------------------------------------------------------------------
 
-def detect_openings(wall, all_points, floor_elevation):
-    from scipy import ndimage
+def _label_connected_components(binary_mask):
+    """Pure-numpy 4-connectivity connected components (replaces scipy.ndimage.label).
 
+    Returns (labeled, num_features) where labeled has the same shape as binary_mask
+    with 0 for background and 1..num_features for components.
+    """
+    mask = np.asarray(binary_mask, dtype=bool)
+    labeled = np.zeros(mask.shape, dtype=np.int32)
+    next_label = 1
+    H, W = mask.shape
+    for i in range(H):
+        for j in range(W):
+            if mask[i, j] and labeled[i, j] == 0:
+                # BFS flood fill
+                stack = [(i, j)]
+                while stack:
+                    y, x = stack.pop()
+                    if y < 0 or y >= H or x < 0 or x >= W:
+                        continue
+                    if not mask[y, x] or labeled[y, x] != 0:
+                        continue
+                    labeled[y, x] = next_label
+                    stack.extend([(y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)])
+                next_label += 1
+    return labeled, next_label - 1
+
+
+def detect_openings(wall, all_points, floor_elevation):
+    # Pure-numpy connected components (replaces scipy.ndimage.label to avoid scipy ABI issues)
     start = np.array(wall.start)
     end = np.array(wall.end)
     wall_dir = end - start
@@ -283,7 +309,7 @@ def detect_openings(wall, all_points, floor_elevation):
     density = hist / hist.max()
     avg_density = np.mean(density[density > 0]) if np.any(density > 0) else 0
     threshold = min(0.2, avg_density * 0.3)
-    labeled, num_features = ndimage.label(density < threshold)
+    labeled, num_features = _label_connected_components(density < threshold)
 
     openings = []
     for label_id in range(1, num_features + 1):
@@ -329,15 +355,16 @@ def _snap(val, common, tol=0.15):
 # ---------------------------------------------------------------------------
 
 def extract_slabs(slab_planes):
-    from scipy.spatial import ConvexHull
+    # Use trimesh's convex hull instead of scipy (avoids numpy ABI issues)
     slabs = []
     for plane in slab_planes:
         pts = plane["inlier_points"][:, [0, 2]]
         if len(pts) < 4:
             continue
         try:
-            hull = ConvexHull(pts)
-            polygon = pts[hull.vertices].tolist()
+            polygon = _convex_hull_2d(pts).tolist()
+            if len(polygon) < 3:
+                continue
             slabs.append(DetectedSlab(
                 polygon=polygon, elevation=float(plane["centroid"][1]),
                 is_ceiling=plane["classification"] == "ceiling",
@@ -345,6 +372,31 @@ def extract_slabs(slab_planes):
         except Exception:
             continue
     return slabs
+
+
+def _convex_hull_2d(points):
+    """2D convex hull via Andrew's monotone chain (no scipy needed)."""
+    pts = np.asarray(points, dtype=float)
+    pts = np.unique(pts, axis=0)
+    if len(pts) < 3:
+        return pts
+    # Sort lexicographically (by x, then y)
+    pts = pts[np.lexsort((pts[:, 1], pts[:, 0]))]
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    lower = []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    upper = []
+    for p in pts[::-1]:
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    return np.array(lower[:-1] + upper[:-1])
 
 
 # ---------------------------------------------------------------------------

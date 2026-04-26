@@ -15,10 +15,10 @@ apt-get update -q && apt-get install -y -q --no-install-recommends \
 pip install --no-cache-dir --upgrade-strategy only-if-needed --ignore-installed blinker \
     'numpy>=1.24,<2.0' \
     'ifcopenshell>=0.8.0' \
-    'scipy>=1.11,<1.14' \
     'trimesh>=4.0' \
     'laspy>=2.5' \
     'Pillow>=10.0'
+# scipy not needed — both handlers use pure-numpy convex hull and connected components
 
 # Open3D separately with --no-deps to avoid blinker/flask conflicts; install only essential deps
 pip install --no-cache-dir --no-deps 'open3d>=0.18.0'
