@@ -43,6 +43,14 @@ pip install --no-cache-dir --no-deps 'multimethod<2.0' 'nlopt<2.10' 'path' 'ezdx
 echo "--- Enforcing numpy<2.0 for open3d/trimesh compatibility ---"
 pip install --no-cache-dir --force-reinstall --no-deps 'numpy>=1.24,<2.0'
 
+# ── Stub out open3d.ml to avoid sklearn auto-import (numpy ABI hell) ──
+# We don't use open3d's ML features, so we don't need its heavy deps.
+# This avoids the scipy/sklearn numpy 2.x ABI mismatch on import.
+echo "--- Stubbing out open3d.ml (we don't use ML features) ---"
+OPEN3D_PATH=$(python -c "import open3d, os; print(os.path.dirname(open3d.__file__))" 2>/dev/null || echo "/usr/local/lib/python3.11/dist-packages/open3d")
+echo "" > "$OPEN3D_PATH/ml/__init__.py" || true
+echo "" > "$OPEN3D_PATH/_ml3d/__init__.py" || true
+
 echo "=== Build complete ==="
 echo "Start the unified server with:"
 echo "  python -u /workspace/repo/unified/handler.py"
