@@ -9,12 +9,13 @@ apt-get update -q && apt-get install -y -q --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Core Python deps (shared by both pipelines) ──
+# CRITICAL: scipy<1.14 and scikit-learn<1.6 — later versions require numpy 2.x
+# which breaks open3d/trimesh compat.
 # --ignore-installed blinker: works around Ubuntu's apt-installed blinker 1.4 conflict
-# --no-deps for open3d to avoid pulling in ancient flask/dash that conflict with system pkgs
 pip install --no-cache-dir --upgrade-strategy only-if-needed --ignore-installed blinker \
     'numpy>=1.24,<2.0' \
     'ifcopenshell>=0.8.0' \
-    'scipy>=1.11' \
+    'scipy>=1.11,<1.14' \
     'trimesh>=4.0' \
     'laspy>=2.5' \
     'Pillow>=10.0'
@@ -22,8 +23,9 @@ pip install --no-cache-dir --upgrade-strategy only-if-needed --ignore-installed 
 # Open3D separately with --no-deps to avoid blinker/flask conflicts; install only essential deps
 pip install --no-cache-dir --no-deps 'open3d>=0.18.0'
 # Open3D imports dash/flask at module load for its visualization submodule — must be installed
+# scikit-learn<1.6 is required (1.6+ needs numpy 2.x binary compat)
 pip install --no-cache-dir --upgrade-strategy only-if-needed --ignore-installed blinker \
-    'matplotlib>=3.7' 'pyyaml' 'tqdm' 'pyquaternion' 'scikit-learn' 'pandas' 'addict' 'configargparse' \
+    'matplotlib>=3.7,<3.10' 'pyyaml' 'tqdm' 'pyquaternion' 'scikit-learn<1.6' 'pandas<2.3' 'addict' 'configargparse' \
     'dash>=2.6.0' 'flask>=3.0.0' 'werkzeug' 'plotly' || echo "Some open3d deps failed"
 
 # ── CadQuery (optional, for STEP export in primitive-fit) ──
