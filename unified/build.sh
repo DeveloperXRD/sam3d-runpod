@@ -15,7 +15,7 @@ apt-get update -q && apt-get install -y -q --no-install-recommends \
 pip install --no-cache-dir --upgrade-strategy only-if-needed --ignore-installed blinker \
     'numpy>=1.24,<2.0' \
     'ifcopenshell>=0.8.0' \
-    'shapely>=2.0,<2.1' \
+    'shapely==2.0.2' \
     'trimesh>=4.0' \
     'laspy>=2.5' \
     'Pillow>=10.0'
